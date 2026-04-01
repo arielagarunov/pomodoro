@@ -1,168 +1,145 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ghost Network</title>
-    <style>
-        :root { --bg: #050505; --card: #121212; --ghost: #ffffff; --accent: #00ff88; --fade: #444; }
-        
-        body { 
-            background: var(--bg); color: var(--ghost); 
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            margin: 0; display: flex; flex-direction: column; height: 100vh;
-        }
-
-        /* Header & Zones */
-        header { padding: 20px; border-bottom: 1px solid #222; text-align: center; }
-        .zone-picker { display: flex; justify-content: center; gap: 10px; margin-top: 15px; overflow-x: auto; padding-bottom: 5px; }
-        .zone-btn { 
-            background: #222; border: 1px solid #333; color: #888; 
-            padding: 8px 16px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap;
-        }
-        .zone-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(0,255,136,0.05); }
-
-        /* Shout Feed */
-        #feed { flex-grow: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column-reverse; gap: 12px; }
-        
-        .shout {
-            background: var(--card); padding: 16px; border-radius: 20px;
-            border: 1px solid #222; animation: emerge 0.4s ease-out;
-            transition: opacity 1200s linear, filter 1200s linear; /* Fades over 20 mins */
-        }
-        .shout.old { opacity: 0.3; filter: blur(1px); }
-        .shout-meta { font-size: 0.7rem; color: #666; margin-bottom: 6px; display: flex; justify-content: space-between; }
-        .shout-text { font-size: 1rem; line-height: 1.5; color: #eee; word-wrap: break-word; }
-
-        /* Input Area */
-        .input-container { padding: 20px; background: #0a0a0a; border-top: 1px solid #222; display: flex; gap: 10px; align-items: center; }
-        #shoutInput { 
-            flex-grow: 1; background: #1a1a1a; border: 1px solid #333; padding: 14px; 
-            border-radius: 25px; color: white; outline: none; transition: 0.2s;
-        }
-        #shoutInput:focus { border-color: var(--accent); }
-        .send-btn { 
-            background: var(--accent); color: #000; border: none; width: 45px; height: 45px; 
-            border-radius: 50%; font-weight: bold; cursor: pointer; font-size: 1.2rem;
-        }
-
-        @keyframes emerge { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-    </style>
-</head>
-<body>
-
-    <header>
-        <span style="font-size: 0.7rem; color: var(--accent); letter-spacing: 3px; font-weight: 800;">GHOST NETWORK</span>
-        <div class="zone-picker" id="zonePicker">
-            <button class="zone-btn active" onclick="changeZone('Global')">🌎 Global</button>
-            <button class="zone-btn" onclick="changeZone('Library')">📚 Library</button>
-            <button class="zone-btn" onclick="changeZone('Gym')">🏋️ Gym</button>
-            <button class="zone-btn" onclick="changeZone('Cafeteria')">🍕 Cafe</button>
-        </div>
-    </header>
-
-    <div id="feed">
-        </div>
-
-    <div class="input-container">
-        <input type="text" id="shoutInput" placeholder="Leave a ghost..." maxlength="150">
-        <button class="send-btn" onclick="sendShout()">↑</button>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyBAuig-hearPfpRAYrLS21jVRszxhzI9V4",
-            authDomain: "zenstudy-2fe64.firebaseapp.com",
-            projectId: "zenstudy-2fe64",
-            storageBucket: "zenstudy-2fe64.firebasestorage.app",
-            messagingSenderId: "650684766921",
-            appId: "1:650684766921:web:b445a2ddedce7bdcdfcb18"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        let currentZone = 'Global';
-        let unsubscribe = null;
-
-        // Change Zone
-        window.changeZone = (zone) => {
-            currentZone = zone;
-            document.querySelectorAll('.zone-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.innerText.includes(zone));
-            });
-            listenToZone();
-        };
-
-        // Send Message
-        window.sendShout = async () => {
-            const input = document.getElementById('shoutInput');
-            if (!input.value.trim()) return;
-
-            try {
-                await addDoc(collection(db, "ghost_shouts"), {
-                    text: input.value,
-                    zone: currentZone,
-                    timestamp: serverTimestamp(),
-                    life: 1.0 // Initial opacity/life
-                });
-                input.value = '';
-            } catch (e) { console.error("Error sending ghost:", e); }
-        };
-
-        // Listen for Local Messages
-        function listenToZone() {
-            if (unsubscribe) unsubscribe();
-            
-            const q = query(
-                collection(db, "ghost_shouts"), 
-                where("zone", "==", currentZone),
-                orderBy("timestamp", "desc"), 
-                limit(30)
-            );
-
-            unsubscribe = onSnapshot(q, (snapshot) => {
-                const feed = document.getElementById('feed');
-                feed.innerHTML = '';
-                
+                                <!DOCTYPE html>
+                                <html lang="en">
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+                                    <title>System Diagnostic [v4.0.1]</title>
+                                    <style>
+                                        :root { --bg: #0d0d0d; --text: #4a4a4a; --active: #7a7a7a; --dim: #2a2a2a; }
+                                        
+                                        body { 
+                                            background: var(--bg); color: var(--text); 
+                                            font-family: 'Courier New', Courier, monospace; 
+                                            margin: 0; display: flex; flex-direction: column; height: 100vh;
+                                            font-size: 0.85rem; line-height: 1.2;
+                                        }
+                                
+                                        /* Top Bar: Fake System Header */
+                                        header { padding: 10px; border-bottom: 1px solid var(--dim); display: flex; justify-content: space-between; }
+                                        .sys-info { color: var(--dim); font-size: 0.7rem; }
+                                
+                                        /* The "Log" (Chat) */
+                                        #log { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column-reverse; gap: 8px; }
+                                        
+                                        .entry { animation: scanline 0.2s ease-out; transition: opacity 300s linear; }
+                                        .entry-meta { color: var(--dim); margin-right: 8px; }
+                                        .entry-user { color: var(--active); font-weight: bold; }
+                                        .entry-body { color: var(--text); }
+                                
+                                        /* Input Area: Fake Command Line */
+                                        .cmd-line { padding: 15px; background: #050505; border-top: 1px solid var(--dim); display: flex; align-items: center; }
+                                        .prompt { color: var(--active); margin-right: 10px; }
+                                        #cmdInput { 
+                                            flex-grow: 1; background: transparent; border: none; color: var(--active); 
+                                            outline: none; font-family: inherit; font-size: inherit;
+                                        }
+                                
+                                        /* Simple Auth Overlay */
+                                        #authOverlay { 
+                                            position: fixed; inset: 0; background: var(--bg); z-index: 100; 
+                                            display: flex; align-items: center; justify-content: center; flex-direction: column; 
+                                        }
+                                        input.auth-field { background: #1a1a1a; border: 1px solid var(--dim); color: var(--active); padding: 10px; margin: 5px; outline: none; }
+                                
+                                        @keyframes scanline { from { opacity: 0; transform: translateX(-5px); } to { opacity: 1; transform: translateX(0); } }
+                                    </style>
+                                </head>
+                                <body>
+                                
+                                    <div id="authOverlay">
+                                        <p style="color: var(--dim)">[ROOT ACCESS REQUIRED]</p>
+                                        <input type="email" id="email" class="auth-field" placeholder="identifier">
+                                        <input type="password" id="password" class="auth-field" placeholder="passkey">
+                                        <button onclick="handleAuth()" style="background:none; border:1px solid var(--dim); color:var(--dim); padding:5px 15px; cursor:pointer; margin-top:10px;">EXECUTE</button>
+                                    </div>
+                                
+                                    <header>
+                                        <span class="sys-info">LOG_STATUS: RUNNING...</span>
+                                        <span class="sys-info">CPU_TEMP: 42°C</span>
+                                    </header>
+                                
+                                    <div id="log">
+                                        </div>
+                                
+                                    <div class="cmd-line">
+                                        <span class="prompt">></span>
+                                        <input type="text" id="cmdInput" placeholder="run command..." autocomplete="off">
+                                    </div>
+                                
+                                    <script type="module">
+                                        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+                                        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+                                        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+                                
+                                        const firebaseConfig = {
+                                            apiKey: "AIzaSyBAuig-hearPfpRAYrLS21jVRszxhzI9V4",
+                                            authDomain: "zenstudy-2fe64.firebaseapp.com",
+                                            projectId: "zenstudy-2fe64",
+                                            storageBucket: "zenstudy-2fe64.firebasestorage.app",
+                                            messagingSenderId: "650684766921",
+                                            appId: "1:650684766921:web:b445a2ddedce7bdcdfcb18"
+                                        };
+                                
+                                        const app = initializeApp(firebaseConfig);
+                                        const auth = getAuth(app);
+                                        const db = getFirestore(app);
+                                
+                                        // Username Jumble Logic
+                                        const prefixes = ["Node", "Core", "Hex", "Link", "Data", "Byte", "Void", "Null"];
+                                        const suffixes = ["_7", "x99", "::v2", "-Alpha", ".exe", "_dev", "[0]"];
+                                        const getJumbledUser = () => prefixes[Math.floor(Math.random() * prefixes.length)] + suffixes[Math.floor(Math.random() * suffixes.length)];
+                                
+                                        window.handleAuth = async () => {
+                                            const e = document.getElementById('email').value, p = document.getElementById('password').value;
+                                            try { await signInWithEmailAndPassword(auth, e, p); } catch { await createUserWithEmailAndPassword(auth, e, p); }
+                                        };
+                                
+                                        onAuthStateChanged(auth, (user) => {
+                                            if(user) {
+                                                document.getElementById('authOverlay').style.display = 'none';
+                                                listenToStream();
+                                            }
+                                        });
+                                
+                                        window.sendEntry = async () => {
+                                            const input = document.getElementById('cmdInput');
+                                            if (!input.value.trim()) return;
+                                
+                                            await addDoc(collection(db, "ghost_log"), {
+                                                text: input.value,
+                                                user_mask: getJumbledUser(),
+                                                timestamp: serverTimestamp()
+                                            });
+                                            input.value = '';
+                                        };
+                                
+                                        function listenToStream() {
+            const q = query(collection(db, "ghost_log"), orderBy("timestamp", "desc"), limit(50));
+            onSnapshot(q, (snapshot) => {
+                const log = document.getElementById('log');
+                log.innerHTML = '';
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     const el = document.createElement('div');
-                    el.className = 'shout';
+                    el.className = 'entry';
                     
-                    const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...';
+                    const time = data.timestamp ? data.timestamp.toDate().toLocaleTimeString([], {hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '00:00:00';
                     
                     el.innerHTML = `
-                        <div class="shout-meta">
-                            <span>👻 Anonymous</span>
-                            <span>${time}</span>
-                        </div>
-                        <div class="shout-text">${data.text}</div>
+                        <span class="entry-meta">[${time}]</span>
+                        <span class="entry-user">${data.user_mask}:</span>
+                        <span class="entry-body">${data.text}</span>
                     `;
+                    log.appendChild(el);
                     
-                    feed.appendChild(el);
-
-                    // Trigger the fade-out effect
-                    setTimeout(() => { 
-                        el.style.opacity = '0';
-                        el.style.filter = 'blur(10px)';
-                    }, 1200000); // 20 Minutes
-                    
-                    // Cleanup from DOM
-                    setTimeout(() => { el.remove(); }, 1205000);
+                    // Ghosting effect: entries fade out to "invisibility" over 5 minutes
+                    setTimeout(() => { el.style.opacity = '0.05'; }, 300000);
                 });
             });
         }
 
-        // Start initial listener
-        listenToZone();
-
-        // Handle 'Enter' key
-        document.getElementById('shoutInput').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendShout();
+        document.getElementById('cmdInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendEntry();
         });
     </script>
 </body>
