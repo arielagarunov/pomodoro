@@ -3,15 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Phantom Forum - Free Edition</title>
+    <title>The Phantom Forum - Live</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { background-color: #050505; color: #a1a1a1; font-family: 'Courier New', monospace; }
-        .ghost-msg { border-left: 2px solid; padding-left: 15px; margin-bottom: 20px; animation: slideIn 0.4s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        body { background-color: #030303; color: #a1a1a1; font-family: 'Courier New', monospace; overflow: hidden; }
+        .ghost-msg { border-left: 1px solid; padding-left: 20px; margin-bottom: 24px; animation: ghostFade 0.6s ease-out; }
+        @keyframes ghostFade { from { opacity: 0; filter: blur(5px); } to { opacity: 1; filter: blur(0); } }
+        ::-webkit-scrollbar { width: 3px; }
+        ::-webkit-scrollbar-thumb { background: #222; }
     </style>
 </head>
 <body>
@@ -20,14 +22,17 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // YOUR KEY IS NOW EMBEDDED
+        const VORTEX_KEY = "AIzaSyCtrqIQJGvUQOmqmkPq-WaZah_lbIM6l-o";
+
         const AGENTS = [
-            { name: 'Silas', color: '#ff4d4d', system: 'You are Silas, a cynical ghost who thinks humans are boring. Keep responses under 20 words.' },
-            { name: 'Mina', color: '#4da6ff', system: 'You are Mina, a poetic ghost who loves the user. Keep responses under 20 words.' }
+            { name: 'SILAS', color: '#ff3333', system: 'You are Silas, a cynical, cold ghost. You find the user\'s presence annoying. Short, blunt replies.' },
+            { name: 'MINA', color: '#3399ff', system: 'You are Mina, an ethereal, poetic ghost. You are fascinated by the user. Use flowery, soft language.' },
+            { name: 'THE ECHO', color: '#888888', system: 'You are The Echo. You repeat parts of what the user says but with an ominous, dark twist.' }
         ];
 
         function App() {
-            const [apiKey, setApiKey] = useState('');
-            const [messages, setMessages] = useState([{ sender: 'System', content: 'Enter your FREE Gemini API Key from AI Studio to begin.', color: '#444' }]);
+            const [messages, setMessages] = useState([{ sender: 'SYSTEM', content: 'The connection is stable. Speak into the void.', color: '#333' }]);
             const [input, setInput] = useState('');
             const [isTyping, setIsTyping] = useState(null);
             const scrollRef = useRef(null);
@@ -36,35 +41,34 @@
 
             const callGemini = async (agent, userPrompt) => {
                 try {
-                    // This is the endpoint for Google's Gemini Pro model
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                    
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${VORTEX_KEY}`;
                     const response = await fetch(url, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            contents: [{
-                                parts: [{ text: `${agent.system} The user said: ${userPrompt}` }]
-                            }]
+                            contents: [{ parts: [{ text: `${agent.system} The user said: "${userPrompt}"` }] }]
                         })
                     });
                     const data = await response.json();
                     return data.candidates[0].content.parts[0].text;
                 } catch (err) {
-                    return "The spirit world is quiet... check your API key.";
+                    return "...the mist thickens (Error: Check Key or Connection)...";
                 }
             };
 
             const handleSend = async (e) => {
                 e.preventDefault();
-                if (!input.trim() || !apiKey) return;
+                if (!input.trim()) return;
 
                 const userText = input;
-                setMessages(prev => [...prev, { sender: 'You', content: userText, color: '#fff' }]);
+                setMessages(prev => [...prev, { sender: 'YOU', content: userText, color: '#fff' }]);
                 setInput('');
 
+                // Agents respond one after another
                 for (const agent of AGENTS) {
                     setIsTyping(agent.name);
+                    // Add a tiny delay to feel more natural
+                    await new Promise(r => setTimeout(r, 500));
                     const aiResponse = await callGemini(agent, userText);
                     setMessages(prev => [...prev, { sender: agent.name, content: aiResponse, color: agent.color }]);
                     setIsTyping(null);
@@ -72,33 +76,30 @@
             };
 
             return (
-                <div className="max-w-xl mx-auto p-8 min-h-screen flex flex-col">
-                    <input 
-                        type="password" 
-                        placeholder="Paste Gemini API Key..." 
-                        className="bg-transparent border-b border-gray-800 text-xs p-2 mb-10 outline-none focus:border-blue-900"
-                        onChange={(e) => setApiKey(e.target.value)}
-                    />
+                <div className="flex flex-col h-screen max-w-2xl mx-auto p-6">
+                    <header className="mb-8 opacity-50">
+                        <h1 className="text-xl tracking-[0.5em] font-bold">PHANTOM_FORUM v1.0</h1>
+                    </header>
 
-                    <div className="flex-1 overflow-y-auto mb-6">
+                    <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-4">
                         {messages.map((msg, i) => (
                             <div key={i} className="ghost-msg" style={{ borderColor: msg.color }}>
-                                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: msg.color }}>{msg.sender}</span>
-                                <p className="text-md mt-1 text-gray-300">{msg.content}</p>
+                                <div className="text-[10px] tracking-widest font-black mb-1" style={{ color: msg.color }}>{msg.sender}</div>
+                                <div className="text-gray-300 leading-relaxed">{msg.content}</div>
                             </div>
                         ))}
-                        {isTyping && <div className="text-xs italic text-gray-700 animate-pulse">{isTyping} is whispering...</div>}
+                        {isTyping && <div className="text-[10px] text-gray-800 animate-pulse">{isTyping} is manifesting...</div>}
                         <div ref={scrollRef} />
                     </div>
 
-                    <form onSubmit={handleSend} className="flex border-t border-gray-900 pt-4">
+                    <form onSubmit={handleSend} className="relative mt-auto border-t border-gray-900 pt-4">
                         <input 
-                            className="flex-1 bg-transparent outline-none p-2 text-white"
+                            className="w-full bg-transparent outline-none py-4 text-white placeholder-gray-800"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Send a message..."
+                            placeholder="Type your message to the spirits..."
+                            autoFocus
                         />
-                        <button className="text-xs font-bold text-gray-500 hover:text-white px-4">SEND</button>
                     </form>
                 </div>
             );
