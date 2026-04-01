@@ -2,165 +2,130 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Focus</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>Zen Study</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --ios-bg: #F2F2F7;
-            --ios-card: rgba(255, 255, 255, 0.8);
-            --system-red: #FF3B30;
-            --system-blue: #007AFF;
-            --system-gray: #8E8E93;
+            --bg: #F2F2F7; --card: rgba(255, 255, 255, 0.8);
+            --text: #1C1C1E; --secondary: #8E8E93;
+            --accent: #FF3B30; --accent-soft: rgba(255, 59, 48, 0.1);
+            --ring-track: rgba(0, 0, 0, 0.05);
         }
-
+        [data-theme="dark"] {
+            --bg: #000000; --card: rgba(28, 28, 30, 0.8);
+            --text: #FFFFFF; --secondary: #8E8E93;
+            --accent: #FF453A; --accent-soft: rgba(255, 69, 58, 0.15);
+            --ring-track: rgba(255, 255, 255, 0.1);
+        }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--ios-bg);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            -webkit-font-smoothing: antialiased;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg); color: var(--text);
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; margin: 0; transition: 0.4s;
         }
-
-        /* The "Glass" Card */
-        .glass-card {
-            background: var(--ios-card);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 40px; /* Apple's signature smooth corners */
-            padding: 3rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-            width: 320px;
-            text-align: center;
-            border: 1px solid rgba(255,255,255,0.3);
+        .app-container {
+            width: 90%; max-width: 380px; background: var(--card);
+            backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
+            border-radius: 44px; padding: 30px; text-align: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1); border: 1px solid rgba(255,255,255,0.1);
         }
-
-        .label {
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--system-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        #timer {
-            font-size: 5.5rem;
-            font-weight: 200; /* Thin weight like iOS lock screen */
-            color: #1C1C1E;
-            margin: 1rem 0 2rem 0;
-            letter-spacing: -2px;
-        }
-
-        /* Apple-style Pill Buttons */
-        .controls {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        button {
-            border: none;
-            border-radius: 16px;
-            padding: 16px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        #startBtn {
-            background-color: var(--system-red);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 59, 48, 0.3);
-        }
-
-        #startBtn:active {
-            transform: scale(0.97);
-            background-color: #D73229;
-        }
-
-        #resetBtn {
-            background: transparent;
-            color: var(--system-blue);
-            font-size: 0.95rem;
-        }
-
-        #resetBtn:hover {
-            background: rgba(0, 122, 255, 0.05);
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .status-pill { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; padding: 6px 14px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); }
+        #timer { font-size: 5rem; font-weight: 200; margin: 20px 0; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+        .rank-card { background: var(--accent-soft); padding: 15px; border-radius: 24px; margin-top: 25px; text-align: left; }
+        .rank-info { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .progress-bg { width: 100%; height: 6px; background: var(--ring-track); border-radius: 3px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 1s ease; }
+        .btn-main { width: 100%; background: var(--accent); color: white; border: none; padding: 18px; border-radius: 18px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-top: 20px; }
+        .btn-secondary { background: none; border: none; color: var(--secondary); margin-top: 10px; cursor: pointer; }
+        #themeToggle { background: none; border: none; font-size: 1.2rem; cursor: pointer; }
     </style>
 </head>
-<body>
+<body data-theme="light">
+    <div class="app-container">
+        <div class="header">
+            <button id="themeToggle">🌓</button>
+            <span id="status" class="status-pill">Focus</span>
+            <div style="width:20px"></div>
+        </div>
 
-<div class="glass-card">
-    <span id="status" class="label">Work Session</span>
-    <div id="timer">25:00</div>
-    
-    <div class="controls">
-        <button id="startBtn">Start</button>
-        <button id="resetBtn">Reset</button>
+        <div id="timer">25:00</div>
+
+        <button id="startBtn" class="btn-main">Start Session</button>
+        <button id="resetBtn" class="btn-secondary">Reset</button>
+
+        <div class="rank-card">
+            <div class="rank-info">
+                <span id="rankIcon" style="font-size: 1.5rem;">🟢</span>
+                <div>
+                    <div id="rankTitle" style="font-weight: 700; font-size: 0.9rem;">Novice</div>
+                    <div id="xpLabel" style="font-size: 0.75rem; color: var(--secondary);">0 / 1000 XP</div>
+                </div>
+            </div>
+            <div class="progress-bg"><div id="xpProgress" class="progress-fill"></div></div>
+        </div>
     </div>
-</div>
 
-<script>
-    let timeLeft = 1500;
-    let timerId = null;
-    let isWorkMode = true;
+    <script>
+        let timeLeft = 1500, timerId = null, isWork = true;
+        let totalXP = parseInt(localStorage.getItem('zenXP')) || 0;
 
-    const timerDisplay = document.getElementById('timer');
-    const startBtn = document.getElementById('startBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const statusLabel = document.getElementById('status');
+        const ranks = [
+            { t: "Novice", i: "🟢", min: 0, next: 1000 },
+            { t: "Deep Diver", i: "🔵", min: 1000, next: 5000 },
+            { t: "Focus Master", i: "🟣", min: 5000, next: 15000 },
+            { t: "Zen Architect", i: "🔥", min: 15000, next: 50000 }
+        ];
 
-    function updateDisplay() {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-    }
-
-    function toggleTimer() {
-        if (timerId) {
-            clearInterval(timerId);
-            timerId = null;
-            startBtn.textContent = 'Resume';
-            startBtn.style.opacity = "0.8";
-        } else {
-            startBtn.textContent = 'Pause';
-            startBtn.style.opacity = "1";
-            timerId = setInterval(() => {
-                if (timeLeft > 0) {
-                    timeLeft--;
-                    updateDisplay();
-                } else {
-                    clearInterval(timerId);
-                    timerId = null;
-                    isWorkMode = !isWorkMode;
-                    timeLeft = isWorkMode ? 1500 : 300;
-                    statusLabel.textContent = isWorkMode ? 'Work Session' : 'Break';
-                    startBtn.style.backgroundColor = isWorkMode ? 'var(--system-red)' : 'var(--system-blue)';
-                    startBtn.textContent = 'Start';
-                    updateDisplay();
-                }
-            }, 1000);
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+            document.getElementById('timer').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
         }
-    }
 
-    startBtn.addEventListener('click', toggleTimer);
-    resetBtn.addEventListener('click', () => {
-        clearInterval(timerId);
-        timerId = null;
-        timeLeft = 1500;
-        isWorkMode = true;
-        startBtn.textContent = 'Start';
-        statusLabel.textContent = 'Work Session';
-        startBtn.style.backgroundColor = 'var(--system-red)';
-        updateDisplay();
-    });
-</script>
+        function toggleTimer() {
+            if (timerId) {
+                clearInterval(timerId); timerId = null;
+                document.getElementById('startBtn').textContent = "Resume";
+            } else {
+                document.getElementById('startBtn').textContent = "Pause";
+                timerId = setInterval(() => {
+                    if (timeLeft > 0) { timeLeft--; updateDisplay(); }
+                    else { completeSession(); }
+                }, 1000);
+            }
+        }
 
+        function completeSession() {
+            clearInterval(timerId); timerId = null;
+            if (isWork) {
+                const earned = 250; totalXP += earned;
+                localStorage.setItem('zenXP', totalXP);
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+            isWork = !isWork; timeLeft = isWork ? 1500 : 300;
+            document.getElementById('status').textContent = isWork ? "Focus" : "Break";
+            document.getElementById('startBtn').textContent = "Start " + (isWork ? "Focus" : "Break");
+            updateDisplay(); renderRank();
+        }
+
+        function renderRank() {
+            const cur = [...ranks].reverse().find(r => totalXP >= r.min);
+            document.getElementById('rankTitle').textContent = cur.t;
+            document.getElementById('rankIcon').textContent = cur.i;
+            const prog = ((totalXP - cur.min) / (cur.next - cur.min)) * 100;
+            document.getElementById('xpProgress').style.width = Math.min(prog, 100) + "%";
+            document.getElementById('xpLabel').textContent = `${totalXP} / ${cur.next} XP`;
+        }
+
+        document.getElementById('startBtn').addEventListener('click', toggleTimer);
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+        });
+        renderRank(); updateDisplay();
+    </script>
 </body>
 </html>
