@@ -9,95 +9,130 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <style>
         :root {
-            --bg: #F2F2F7; --card: rgba(255, 255, 255, 0.85);
+            --bg: #F2F2F7; --card: #FFFFFF;
             --text: #1C1C1E; --secondary: #8E8E93;
             --accent: #FF3B30; --accent-soft: rgba(255, 59, 48, 0.1);
-            --input-bg: rgba(0,0,0,0.05);
+            --input-bg: #E5E5EA;
         }
         [data-theme="dark"] {
-            --bg: #000000; --card: rgba(28, 28, 30, 0.85);
+            --bg: #000000; --card: #1C1C1E;
             --text: #FFFFFF; --secondary: #8E8E93;
             --accent: #FF453A; --accent-soft: rgba(255, 69, 58, 0.15);
-            --input-bg: rgba(255,255,255,0.1);
+            --input-bg: #2C2C2E;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--bg); color: var(--text);
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; margin: 0; transition: 0.4s;
+            margin: 0; transition: 0.4s; overflow: hidden;
         }
 
-        /* Login Overlay */
-        #authOverlay {
-            position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg); display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; padding: 20px; text-align: center;
+        /* View Management */
+        .view {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; flex-direction: column; padding: 20px; box-sizing: border-box;
         }
-        .auth-card {
-            width: 100%; max-width: 340px; background: var(--card);
-            padding: 40px 30px; border-radius: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-        }
-        input {
-            width: 100%; padding: 16px; margin: 8px 0; border-radius: 14px;
-            border: none; background: var(--input-bg); color: var(--text); font-size: 1rem;
+        .active-view { display: flex; }
+
+        /* Home Dashboard */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-top: 40px; }
+        .greeting { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+        
+        .rank-card {
+            background: var(--card); padding: 24px; border-radius: 32px;
+            margin-top: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05);
         }
 
-        /* App UI */
-        .app-container {
-            width: 90%; max-width: 380px; background: var(--card);
-            backdrop-filter: blur(30px) saturate(180%); -webkit-backdrop-filter: blur(30px) saturate(180%);
-            border-radius: 44px; padding: 30px; text-align: center;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.1); display: none; /* Hidden until login */
+        /* Settings Grid */
+        .settings-section { margin-top: 30px; }
+        .settings-label { font-size: 0.8rem; font-weight: 600; color: var(--secondary); text-transform: uppercase; margin-left: 10px; }
+        .presets { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .preset-btn {
+            background: var(--card); border: 2px solid transparent; padding: 15px 5px;
+            border-radius: 20px; font-weight: 600; cursor: pointer; color: var(--text);
+            transition: 0.2s;
         }
-        #timer { font-size: 5.5rem; font-weight: 200; margin: 30px 0; font-variant-numeric: tabular-nums; letter-spacing: -3px; }
-        .rank-card { background: var(--accent-soft); padding: 18px; border-radius: 28px; margin-top: 25px; text-align: left; }
-        .progress-bg { width: 100%; height: 8px; background: rgba(0,0,0,0.05); border-radius: 4px; margin-top: 10px; overflow: hidden; }
-        .progress-fill { height: 100%; background: var(--accent); width: 0%; transition: 1s cubic-bezier(0.4, 0, 0.2, 1); }
-        .btn-main { width: 100%; background: var(--accent); color: white; border: none; padding: 18px; border-radius: 20px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin-top: 15px; }
-        .btn-secondary { background: none; border: none; color: var(--secondary); margin-top: 12px; cursor: pointer; width: 100%; }
+        .preset-btn.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+
+        /* Timer Modal (Slide Up) */
+        #timerView {
+            background: var(--bg); z-index: 100;
+            transform: translateY(100%); transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; /* Always flex, handled by transform */
+        }
+        #timerView.open { transform: translateY(0); }
+
+        .timer-display { font-size: 6rem; font-weight: 200; margin: auto 0; letter-spacing: -4px; font-variant-numeric: tabular-nums; }
+        
+        /* Buttons */
+        .btn-large {
+            width: 100%; background: var(--accent); color: white; border: none;
+            padding: 22px; border-radius: 24px; font-size: 1.2rem; font-weight: 700;
+            cursor: pointer; margin-top: auto; margin-bottom: 30px;
+        }
+        .btn-ghost { background: none; border: none; color: var(--secondary); font-weight: 600; cursor: pointer; padding: 15px; }
+        
+        /* Auth Screen */
+        #authOverlay { background: var(--bg); z-index: 1000; position: fixed; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        .auth-card { width: 85%; max-width: 340px; text-align: center; }
+        input { width: 100%; padding: 18px; margin: 8px 0; border-radius: 16px; border: none; background: var(--input-bg); color: var(--text); }
     </style>
 </head>
 <body data-theme="light">
 
     <div id="authOverlay">
         <div class="auth-card">
-            <h1 style="font-weight: 800; letter-spacing: -1px;">Zen Study</h1>
-            <p style="color: var(--secondary); margin-bottom: 25px;">Sign in to save your rank</p>
+            <h1 style="font-size: 2.5rem; font-weight: 800;">Zen Study</h1>
             <input type="email" id="email" placeholder="Email">
             <input type="password" id="password" placeholder="Password">
-            <button class="btn-main" onclick="handleAuth()">Continue</button>
+            <button class="btn-large" onclick="handleAuth()">Get Started</button>
         </div>
     </div>
 
-    <div class="app-container" id="app">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <button id="themeToggle" style="background:none; border:none; font-size: 1.2rem; cursor:pointer;">🌓</button>
-            <span id="status" style="font-size:0.7rem; font-weight:800; text-transform:uppercase; color:var(--accent);">Focus</span>
-            <button onclick="signOutUser()" style="background:none; border:none; color:var(--secondary); font-size:0.8rem;">Logout</button>
+    <div id="homeView" class="view active-view">
+        <div class="header">
+            <div class="greeting">Hello, Scholar</div>
+            <button id="themeToggle" style="background:none; border:none; font-size: 1.5rem;">🌓</button>
         </div>
-
-        <div id="timer">25:00</div>
-        <button id="startBtn" class="btn-main">Start Session</button>
-        <button id="resetBtn" class="btn-secondary">Reset</button>
 
         <div class="rank-card">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <span id="rankIcon" style="font-size: 1.8rem;">🟢</span>
-                <div>
-                    <div id="rankTitle" style="font-weight: 700;">Novice</div>
-                    <div id="xpLabel" style="font-size: 0.75rem; color: var(--secondary);">0 XP</div>
+            <div style="display:flex; align-items:center; gap:15px;">
+                <span id="rankIcon" style="font-size: 2.5rem;">🟢</span>
+                <div style="flex-grow: 1;">
+                    <div id="rankTitle" style="font-weight: 800; font-size: 1.2rem;">Novice</div>
+                    <div id="xpLabel" style="font-size: 0.85rem; color: var(--secondary);">0 XP Collected</div>
                 </div>
             </div>
-            <div class="progress-bg"><div id="xpProgress" class="progress-fill"></div></div>
+            <div style="width:100%; height:8px; background:var(--input-bg); border-radius:4px; margin-top:15px; overflow:hidden;">
+                <div id="xpProgress" style="height:100%; background:var(--accent); width:0%; transition:1s;"></div>
+            </div>
         </div>
+
+        <div class="settings-section">
+            <span class="settings-label">Focus Preset</span>
+            <div class="presets">
+                <button class="preset-btn selected" onclick="setMode(25, 5, this)">25 / 5</button>
+                <button class="preset-btn" onclick="setMode(50, 10, this)">50 / 10</button>
+                <button class="preset-btn" onclick="setMode(90, 15, this)">90 / 15</button>
+            </div>
+        </div>
+
+        <button class="btn-large" onclick="openTimer()">Start Focus Session</button>
+    </div>
+
+    <div id="timerView" class="view">
+        <button class="btn-ghost" onclick="closeTimer()" style="align-self: flex-start; margin-top: 20px;">􀆄 Cancel</button>
+        <div id="status" style="margin-top: 40px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1px;">Focus</div>
+        <div class="timer-display" id="timer">25:00</div>
+        
+        <button id="startBtn" class="btn-large" onclick="toggleTimer()">Start</button>
+        <button id="resetBtn" class="btn-ghost" onclick="resetTimer()">Reset Session</button>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // Your Config
         const firebaseConfig = {
             apiKey: "AIzaSyBAuig-hearPfpRAYrLS21jVRszxhzI9V4",
             authDomain: "zenstudy-2fe64.firebaseapp.com",
@@ -111,42 +146,47 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        let timeLeft = 1500, timerId = null, isWork = true, userXP = 0;
+        let workMins = 25, breakMins = 5, timeLeft = 1500;
+        let timerId = null, isWork = true, userXP = 0;
 
-        // AUTH LOGIC
+        // Navigation
+        window.openTimer = () => {
+            document.getElementById('timerView').classList.add('open');
+            resetTimer();
+        };
+        window.closeTimer = () => {
+            if(timerId) toggleTimer();
+            document.getElementById('timerView').classList.remove('open');
+        };
+
+        // Settings
+        window.setMode = (w, b, btn) => {
+            workMins = w; breakMins = b;
+            timeLeft = w * 60;
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            updateDisplay();
+        };
+
+        // Auth
         window.handleAuth = async () => {
             const email = document.getElementById('email').value;
             const pass = document.getElementById('password').value;
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-            } catch (e) {
-                if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-                    await createUserWithEmailAndPassword(auth, email, pass);
-                } else { alert(e.message); }
-            }
+            try { await signInWithEmailAndPassword(auth, email, pass); }
+            catch (e) { await createUserWithEmailAndPassword(auth, email, pass); }
         };
-
-        window.signOutUser = () => signOut(auth);
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 document.getElementById('authOverlay').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                const docRef = doc(db, "users", user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) {
-                    userXP = docSnap.data().xp || 0;
-                } else {
-                    await setDoc(docRef, { xp: 0, email: user.email });
-                }
+                const docSnap = await getDoc(doc(db, "users", user.uid));
+                if (docSnap.exists()) userXP = docSnap.data().xp || 0;
+                else await setDoc(doc(db, "users", user.uid), { xp: 0, email: user.email });
                 renderRank();
-            } else {
-                document.getElementById('authOverlay').style.display = 'flex';
-                document.getElementById('app').style.display = 'none';
             }
         });
 
-        // TIMER LOGIC
+        // Timer Core
         function updateDisplay() {
             const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
             document.getElementById('timer').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
@@ -168,16 +208,23 @@
         async function completeSession() {
             clearInterval(timerId); timerId = null;
             if (isWork) {
-                userXP += 250;
-                const user = auth.currentUser;
-                await updateDoc(doc(db, "users", user.uid), { xp: increment(250) });
-                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#FF3B30', '#FF9500', '#FFCC00'] });
+                userXP += (workMins * 10);
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { xp: increment(workMins * 10) });
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
             }
-            isWork = !isWork; timeLeft = isWork ? 1500 : 300;
+            isWork = !isWork; timeLeft = (isWork ? workMins : breakMins) * 60;
             document.getElementById('status').textContent = isWork ? "Focus" : "Break";
             document.getElementById('startBtn').textContent = "Start " + (isWork ? "Focus" : "Break");
             updateDisplay(); renderRank();
         }
+
+        window.resetTimer = () => {
+            clearInterval(timerId); timerId = null;
+            isWork = true; timeLeft = workMins * 60;
+            document.getElementById('startBtn').textContent = "Start";
+            document.getElementById('status').textContent = "Focus";
+            updateDisplay();
+        };
 
         function renderRank() {
             const ranks = [
@@ -191,10 +238,9 @@
             document.getElementById('rankIcon').textContent = cur.i;
             const prog = ((userXP - cur.min) / (cur.next - cur.min)) * 100;
             document.getElementById('xpProgress').style.width = Math.min(prog, 100) + "%";
-            document.getElementById('xpLabel').textContent = `${userXP} / ${cur.next} XP`;
+            document.getElementById('xpLabel').textContent = `${userXP} XP Collected`;
         }
 
-        document.getElementById('startBtn').onclick = window.toggleTimer;
         document.getElementById('themeToggle').onclick = () => {
             document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
         };
