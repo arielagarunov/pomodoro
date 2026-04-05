@@ -2,18 +2,26 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Minimal Pomodoro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PomoFocus</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="PomoFocus">
+    <link rel="apple-touch-icon" href="icon.png">
+
     <style>
         :root {
             --bg-color: #ba4949; 
             --button-color: rgba(255, 255, 255, 0.2);
         }
 
+        * { box-sizing: border-box; }
+
         body {
             background-color: var(--bg-color);
             transition: background-color 0.5s ease;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -21,6 +29,9 @@
             height: 100vh;
             margin: 0;
             color: white;
+            padding-top: env(safe-area-inset-top);
+            overscroll-behavior: none;
+            user-select: none;
         }
 
         .container {
@@ -28,52 +39,56 @@
             width: 100%;
             max-width: 400px;
             padding: 20px;
+            z-index: 1;
         }
 
         /* Settings Panel */
         #settings-panel {
             display: none;
-            background: rgba(255, 255, 255, 0.15);
+            background: rgba(0, 0, 0, 0.3);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 12px;
             margin-bottom: 20px;
-            backdrop-filter: blur(5px);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         .setting-group {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
         }
 
         .setting-group input {
-            width: 50px;
-            padding: 5px;
-            border-radius: 4px;
+            width: 60px;
+            padding: 8px;
+            border-radius: 6px;
             border: none;
             text-align: center;
+            font-size: 16px;
         }
 
         /* Timer UI */
         .timer-display {
-            font-size: 100px;
-            font-weight: bold;
+            font-size: clamp(80px, 25vw, 120px);
+            font-weight: 700;
             margin: 20px 0;
+            font-variant-numeric: tabular-nums;
         }
 
         .controls button, .save-btn {
             background: white;
             color: var(--bg-color);
             border: none;
-            padding: 15px 40px;
-            font-size: 20px;
+            padding: 18px 50px;
+            font-size: 22px;
             font-weight: bold;
-            border-radius: 5px;
+            border-radius: 8px;
             cursor: pointer;
             text-transform: uppercase;
             box-shadow: 0px 6px #ebebeb;
-            transition: all 0.1s;
+            transition: transform 0.1s, box-shadow 0.1s;
         }
 
         .controls button:active {
@@ -81,30 +96,43 @@
             transform: translateY(6px);
         }
 
-        .modes button, .settings-toggle {
+        .modes {
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .modes button {
             background: none;
             border: none;
             color: white;
-            padding: 8px 15px;
+            padding: 10px 15px;
             cursor: pointer;
             font-size: 16px;
-            opacity: 0.8;
-            border-radius: 4px;
+            opacity: 0.7;
+            border-radius: 6px;
         }
 
         .modes button.active {
             background: var(--button-color);
-            font-weight: bold;
             opacity: 1;
+            font-weight: bold;
         }
 
         .settings-toggle {
             position: absolute;
-            top: 20px;
+            top: calc(20px + env(safe-area-inset-top));
             right: 20px;
-            font-size: 24px;
+            background: var(--button-color);
+            border: none;
+            color: white;
+            padding: 10px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            line-height: 1;
         }
-
     </style>
 </head>
 <body>
@@ -115,9 +143,9 @@
 
 <div class="container">
     <div id="settings-panel">
-        <h3 style="margin-top: 0;">Timer Settings (mins)</h3>
+        <h3 style="margin-top: 0;">Settings (min)</h3>
         <div class="setting-group">
-            <label>Pomodoro</label>
+            <label>Work</label>
             <input type="number" id="work-input" value="25">
         </div>
         <div class="setting-group">
@@ -128,13 +156,13 @@
             <label>Long Break</label>
             <input type="number" id="long-input" value="15">
         </div>
-        <button class="save-btn" style="padding: 5px 20px; font-size: 14px;" onclick="saveSettings()">Apply</button>
+        <button class="save-btn" style="padding: 10px 30px; font-size: 16px;" onclick="saveSettings()">Save & Close</button>
     </div>
 
     <div class="modes">
         <button onclick="setMode('work')" id="work-btn" class="active">Pomodoro</button>
-        <button onclick="setMode('short')" id="short-btn">Short Break</button>
-        <button onclick="setMode('long')" id="long-btn">Long Break</button>
+        <button onclick="setMode('short')" id="short-btn">Short</button>
+        <button onclick="setMode('long')" id="long-btn">Long</button>
     </div>
 
     <div class="timer-display" id="timer">25:00</div>
@@ -145,11 +173,23 @@
 </div>
 
 <script>
-    const themes = {
+    // Configuration Object
+    let themes = {
         work: { time: 25 * 60, color: '#ba4949' },
         short: { time: 5 * 60, color: '#38858a' },
         long: { time: 15 * 60, color: '#397097' }
     };
+
+    // Load from LocalStorage if exists
+    if (localStorage.getItem('pomoSettings')) {
+        const saved = JSON.parse(localStorage.getItem('pomoSettings'));
+        themes.work.time = saved.work * 60;
+        themes.short.time = saved.short * 60;
+        themes.long.time = saved.long * 60;
+        document.getElementById('work-input').value = saved.work;
+        document.getElementById('short-input').value = saved.short;
+        document.getElementById('long-input').value = saved.long;
+    }
 
     let timeLeft = themes.work.time;
     let timerId = null;
@@ -165,7 +205,7 @@
         const secs = timeLeft % 60;
         const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
         timerDisplay.textContent = formatted;
-        document.title = `${formatted} - Focus!`;
+        document.title = `${formatted} - Focus`;
     }
 
     function setMode(mode) {
@@ -193,8 +233,9 @@
             updateDisplay();
             if (timeLeft <= 0) {
                 clearInterval(timerId);
-                alarm.play();
+                alarm.play().catch(() => {}); 
                 stopTimer();
+                alert("Session Finished!");
             }
         }, 1000);
     }
@@ -211,15 +252,28 @@
     }
 
     function saveSettings() {
-        themes.work.time = document.getElementById('work-input').value * 60;
-        themes.short.time = document.getElementById('short-input').value * 60;
-        themes.long.time = document.getElementById('long-input').value * 60;
-        
-        setMode(currentMode); // Refresh current timer
-        toggleSettings(); // Hide panel
+        const w = document.getElementById('work-input').value;
+        const s = document.getElementById('short-input').value;
+        const l = document.getElementById('long-input').value;
+
+        themes.work.time = w * 60;
+        themes.short.time = s * 60;
+        themes.long.time = l * 60;
+
+        // Save to LocalStorage
+        localStorage.setItem('pomoSettings', JSON.stringify({work: w, short: s, long: l}));
+
+        setMode(currentMode);
+        toggleSettings();
     }
 
-    // Init
+    // Initialize
+    updateDisplay();
+    startBtn.style.color = themes.work.color;
+</script>
+
+</body>
+</html>
     startBtn.style.color = themes.work.color;
 </script>
 
