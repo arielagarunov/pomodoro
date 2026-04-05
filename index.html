@@ -3,110 +3,163 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Phantom Forum - Live</title>
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Minimal Pomodoro</title>
     <style>
-        body { background-color: #030303; color: #a1a1a1; font-family: 'Courier New', monospace; overflow: hidden; }
-        .ghost-msg { border-left: 1px solid; padding-left: 20px; margin-bottom: 24px; animation: ghostFade 0.6s ease-out; }
-        @keyframes ghostFade { from { opacity: 0; filter: blur(5px); } to { opacity: 1; filter: blur(0); } }
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-thumb { background: #222; }
+        :root {
+            --bg-color: #ba4949; /* Work Red */
+            --button-color: rgba(255, 255, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            transition: background-color 0.5s ease;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+        }
+
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .timer-display {
+            font-size: 100px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .controls button {
+            background: white;
+            color: var(--bg-color);
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0px 6px #ebebeb;
+        }
+
+        .controls button:active {
+            box-shadow: none;
+            transform: translateY(6px);
+        }
+
+        .modes {
+            margin-bottom: 20px;
+        }
+
+        .modes button {
+            background: none;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        .modes button.active {
+            background: var(--button-color);
+            font-weight: bold;
+            border-radius: 4px;
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+<div class="container">
+    <div class="modes">
+        <button onclick="setMode('work')" id="work-btn" class="active">Pomodoro</button>
+        <button onclick="setMode('short')" id="short-btn">Short Break</button>
+        <button onclick="setMode('long')" id="long-btn">Long Break</button>
+    </div>
 
-        // YOUR KEY IS NOW EMBEDDED
-        const VORTEX_KEY = "AIzaSyCtrqIQJGvUQOmqmkPq-WaZah_lbIM6l-o";
+    <div class="timer-display" id="timer">25:00</div>
 
-        const AGENTS = [
-            { name: 'SILAS', color: '#ff3333', system: 'You are Silas, a cynical, cold ghost. You find the user\'s presence annoying. Short, blunt replies.' },
-            { name: 'MINA', color: '#3399ff', system: 'You are Mina, an ethereal, poetic ghost. You are fascinated by the user. Use flowery, soft language.' },
-            { name: 'THE ECHO', color: '#888888', system: 'You are The Echo. You repeat parts of what the user says but with an ominous, dark twist.' }
-        ];
+    <div class="controls">
+        <button onclick="toggleTimer()" id="start-btn">Start</button>
+    </div>
+</div>
 
-        function App() {
-            const [messages, setMessages] = useState([{ sender: 'SYSTEM', content: 'The connection is stable. Speak into the void.', color: '#333' }]);
-            const [input, setInput] = useState('');
-            const [isTyping, setIsTyping] = useState(null);
-            const scrollRef = useRef(null);
+<script>
+    let timeLeft = 25 * 60;
+    let timerId = null;
+    let isRunning = false;
+    let currentMode = 'work';
 
-            useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
+    const timerDisplay = document.getElementById('timer');
+    const startBtn = document.getElementById('start-btn');
 
-            const callGemini = async (agent, userPrompt) => {
-                try {
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${VORTEX_KEY}`;
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: `${agent.system} The user said: "${userPrompt}"` }] }]
-                        })
-                    });
-                    const data = await response.json();
-                    return data.candidates[0].content.parts[0].text;
-                } catch (err) {
-                    return "...the mist thickens (Error: Check Key or Connection)...";
-                }
-            };
+    const themes = {
+        work: { time: 25 * 60, color: '#ba4949' },
+        short: { time: 5 * 60, color: '#38858a' },
+        long: { time: 15 * 60, color: '#397097' }
+    };
 
-            const handleSend = async (e) => {
-                e.preventDefault();
-                if (!input.trim()) return;
+    function updateDisplay() {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        timerDisplay.textContent = formatted;
+        document.title = `${formatted} - Focus!`;
+    }
 
-                const userText = input;
-                setMessages(prev => [...prev, { sender: 'YOU', content: userText, color: '#fff' }]);
-                setInput('');
+    function setMode(mode) {
+        currentMode = mode;
+        timeLeft = themes[mode].time;
+        document.documentElement.style.setProperty('--bg-color', themes[mode].color);
+        
+        // Update button colors to match theme
+        startBtn.style.color = themes[mode].color;
 
-                // Agents respond one after another
-                for (const agent of AGENTS) {
-                    setIsTyping(agent.name);
-                    // Add a tiny delay to feel more natural
-                    await new Promise(r => setTimeout(r, 500));
-                    const aiResponse = await callGemini(agent, userText);
-                    setMessages(prev => [...prev, { sender: agent.name, content: aiResponse, color: agent.color }]);
-                    setIsTyping(null);
-                }
-            };
+        // UI active state
+        document.querySelectorAll('.modes button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`${mode}-btn`).classList.add('active');
 
-            return (
-                <div className="flex flex-col h-screen max-w-2xl mx-auto p-6">
-                    <header className="mb-8 opacity-50">
-                        <h1 className="text-xl tracking-[0.5em] font-bold">PHANTOM_FORUM v1.0</h1>
-                    </header>
+        stopTimer();
+        updateDisplay();
+    }
 
-                    <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-4">
-                        {messages.map((msg, i) => (
-                            <div key={i} className="ghost-msg" style={{ borderColor: msg.color }}>
-                                <div className="text-[10px] tracking-widest font-black mb-1" style={{ color: msg.color }}>{msg.sender}</div>
-                                <div className="text-gray-300 leading-relaxed">{msg.content}</div>
-                            </div>
-                        ))}
-                        {isTyping && <div className="text-[10px] text-gray-800 animate-pulse">{isTyping} is manifesting...</div>}
-                        <div ref={scrollRef} />
-                    </div>
-
-                    <form onSubmit={handleSend} className="relative mt-auto border-t border-gray-900 pt-4">
-                        <input 
-                            className="w-full bg-transparent outline-none py-4 text-white placeholder-gray-800"
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                            placeholder="Type your message to the spirits..."
-                            autoFocus
-                        />
-                    </form>
-                </div>
-            );
+    function toggleTimer() {
+        if (isRunning) {
+            stopTimer();
+        } else {
+            startTimer();
         }
+    }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+    function startTimer() {
+        isRunning = true;
+        startBtn.textContent = "Pause";
+        timerId = setInterval(() => {
+            timeLeft--;
+            updateDisplay();
+            if (timeLeft <= 0) {
+                clearInterval(timerId);
+                alert("Time's up!");
+                setMode('work');
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        isRunning = false;
+        startBtn.textContent = "Start";
+        clearInterval(timerId);
+    }
+
+    // Initialize display color
+    startBtn.style.color = themes.work.color;
+</script>
+
 </body>
 </html>
