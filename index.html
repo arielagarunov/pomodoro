@@ -3,272 +3,173 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>PomoFocus</title>
+    <title>ZenStudy Pomodoro</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="PomoFocus">
-    <link rel="apple-touch-icon" href="icon.png">
+    <meta name="apple-mobile-web-app-title" content="ZenStudy">
 
     <style>
-        :root {
-            --bg-color: #ba4949; 
-            --button-color: rgba(255, 255, 255, 0.2);
-        }
-
-        * { box-sizing: border-box; }
-
+        :root { --bg-color: #ba4949; --btn-bg: rgba(255, 255, 255, 0.2); }
         body {
             background-color: var(--bg-color);
             transition: background-color 0.5s ease;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            color: white;
-            padding-top: env(safe-area-inset-top);
-            overscroll-behavior: none;
-            user-select: none;
+            font-family: -apple-system, system-ui, sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; color: white; overflow: hidden;
+        }
+        .container { text-align: center; width: 90%; max-width: 400px; }
+        .timer-display { font-size: 100px; font-weight: bold; margin: 10px 0; font-variant-numeric: tabular-nums; }
+        
+        .main-btn {
+            background: white; color: var(--bg-color); border: none;
+            padding: 18px 60px; font-size: 22px; font-weight: bold;
+            border-radius: 12px; cursor: pointer; box-shadow: 0px 6px #ddd;
+        }
+        .main-btn:active { transform: translateY(4px); box-shadow: none; }
+
+        .stats-card {
+            margin-top: 30px; background: rgba(0,0,0,0.2);
+            padding: 15px; border-radius: 15px; backdrop-filter: blur(5px);
+            display: none; /* Hidden until login */
         }
 
-        .container {
-            text-align: center;
-            width: 100%;
-            max-width: 400px;
-            padding: 20px;
-            z-index: 1;
+        #auth-btn {
+            margin-top: 20px; background: none; border: 1px solid white;
+            color: white; padding: 8px 20px; border-radius: 20px; cursor: pointer;
         }
 
-        /* Settings Panel */
-        #settings-panel {
-            display: none;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 20px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-        }
-
-        .setting-group {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .setting-group input {
-            width: 60px;
-            padding: 8px;
-            border-radius: 6px;
-            border: none;
-            text-align: center;
-            font-size: 16px;
-        }
-
-        /* Timer UI */
-        .timer-display {
-            font-size: clamp(80px, 25vw, 120px);
-            font-weight: 700;
-            margin: 20px 0;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .controls button, .save-btn {
-            background: white;
-            color: var(--bg-color);
-            border: none;
-            padding: 18px 50px;
-            font-size: 22px;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            text-transform: uppercase;
-            box-shadow: 0px 6px #ebebeb;
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-
-        .controls button:active {
-            box-shadow: none;
-            transform: translateY(6px);
-        }
-
-        .modes {
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: center;
-            gap: 5px;
-        }
-
-        .modes button {
-            background: none;
-            border: none;
-            color: white;
-            padding: 10px 15px;
-            cursor: pointer;
-            font-size: 16px;
-            opacity: 0.7;
-            border-radius: 6px;
-        }
-
-        .modes button.active {
-            background: var(--button-color);
-            opacity: 1;
-            font-weight: bold;
-        }
-
-        .settings-toggle {
-            position: absolute;
-            top: calc(20px + env(safe-area-inset-top));
-            right: 20px;
-            background: var(--button-color);
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            line-height: 1;
-        }
+        .settings-btn { position: absolute; top: 50px; right: 20px; font-size: 24px; cursor: pointer; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-<button class="settings-toggle" onclick="toggleSettings()">⚙️</button>
+    <div class="settings-btn" onclick="alert('Settings feature coming soon!')">⚙️</div>
 
-<audio id="alarm-sound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+    <div class="container">
+        <div id="user-info" style="margin-bottom: 10px; font-weight: 500;"></div>
+        
+        <div class="timer-display" id="timer">25:00</div>
+        
+        <button class="main-btn" id="start-btn">START</button>
 
-<div class="container">
-    <div id="settings-panel">
-        <h3 style="margin-top: 0;">Settings (min)</h3>
-        <div class="setting-group">
-            <label>Work</label>
-            <input type="number" id="work-input" value="25">
+        <div class="stats-card" id="stats-card">
+            <div style="font-size: 12px; opacity: 0.8;">TOTAL FOCUS TIME</div>
+            <div style="font-size: 24px; font-weight: bold;"><span id="total-minutes">0</span> MINS</div>
         </div>
-        <div class="setting-group">
-            <label>Short Break</label>
-            <input type="number" id="short-input" value="5">
-        </div>
-        <div class="setting-group">
-            <label>Long Break</label>
-            <input type="number" id="long-input" value="15">
-        </div>
-        <button class="save-btn" style="padding: 10px 30px; font-size: 16px;" onclick="saveSettings()">Save & Close</button>
+
+        <button id="auth-btn">Login with Google to Track Time</button>
     </div>
 
-    <div class="modes">
-        <button onclick="setMode('work')" id="work-btn" class="active">Pomodoro</button>
-        <button onclick="setMode('short')" id="short-btn">Short</button>
-        <button onclick="setMode('long')" id="long-btn">Long</button>
-    </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    <div class="timer-display" id="timer">25:00</div>
+        // Your Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAuig-hearPfpRAYrLS21jVRszxhzI9V4",
+            authDomain: "zenstudy-2fe64.firebaseapp.com",
+            databaseURL: "https://zenstudy-2fe64-default-rtdb.firebaseio.com",
+            projectId: "zenstudy-2fe64",
+            storageBucket: "zenstudy-2fe64.firebasestorage.app",
+            messagingSenderId: "650684766921",
+            appId: "1:650684766921:web:b445a2ddedce7bdcdfcb18",
+            measurementId: "G-KG91HQGMM8"
+        };
 
-    <div class="controls">
-        <button onclick="toggleTimer()" id="start-btn">Start</button>
-    </div>
-</div>
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const provider = new GoogleAuthProvider();
 
-<script>
-    // Configuration Object
-    let themes = {
-        work: { time: 25 * 60, color: '#ba4949' },
-        short: { time: 5 * 60, color: '#38858a' },
-        long: { time: 15 * 60, color: '#397097' }
-    };
+        // App State
+        let timeLeft = 25 * 60;
+        let timerId = null;
+        let isRunning = false;
+        let currentUser = null;
 
-    // Load from LocalStorage if exists
-    if (localStorage.getItem('pomoSettings')) {
-        const saved = JSON.parse(localStorage.getItem('pomoSettings'));
-        themes.work.time = saved.work * 60;
-        themes.short.time = saved.short * 60;
-        themes.long.time = saved.long * 60;
-        document.getElementById('work-input').value = saved.work;
-        document.getElementById('short-input').value = saved.short;
-        document.getElementById('long-input').value = saved.long;
-    }
+        // UI Elements
+        const timerEl = document.getElementById('timer');
+        const startBtn = document.getElementById('start-btn');
+        const authBtn = document.getElementById('auth-btn');
+        const statsCard = document.getElementById('stats-card');
+        const totalMinEl = document.getElementById('total-minutes');
+        const userDisplay = document.getElementById('user-info');
 
-    let timeLeft = themes.work.time;
-    let timerId = null;
-    let isRunning = false;
-    let currentMode = 'work';
-
-    const timerDisplay = document.getElementById('timer');
-    const startBtn = document.getElementById('start-btn');
-    const alarm = document.getElementById('alarm-sound');
-
-    function updateDisplay() {
-        const mins = Math.floor(timeLeft / 60);
-        const secs = timeLeft % 60;
-        const formatted = `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-        timerDisplay.textContent = formatted;
-        document.title = `${formatted} - Focus`;
-    }
-
-    function setMode(mode) {
-        currentMode = mode;
-        timeLeft = themes[mode].time;
-        document.documentElement.style.setProperty('--bg-color', themes[mode].color);
-        startBtn.style.color = themes[mode].color;
-
-        document.querySelectorAll('.modes button').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`${mode}-btn`).classList.add('active');
-
-        stopTimer();
-        updateDisplay();
-    }
-
-    function toggleTimer() {
-        isRunning ? stopTimer() : startTimer();
-    }
-
-    function startTimer() {
-        isRunning = true;
-        startBtn.textContent = "Pause";
-        timerId = setInterval(() => {
-            timeLeft--;
-            updateDisplay();
-            if (timeLeft <= 0) {
-                clearInterval(timerId);
-                alarm.play().catch(() => {}); 
-                stopTimer();
-                alert("Session Finished!");
+        // Handle Auth
+        authBtn.onclick = () => {
+            if (!currentUser) {
+                signInWithPopup(auth, provider);
+            } else {
+                signOut(auth);
             }
-        }, 1000);
-    }
+        };
 
-    function stopTimer() {
-        isRunning = false;
-        startBtn.textContent = "Start";
-        clearInterval(timerId);
-    }
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                authBtn.textContent = "Logout";
+                statsCard.style.display = "block";
+                userDisplay.textContent = `Hello, ${user.displayName.split(' ')[0]}!`;
+                loadUserStats();
+            } else {
+                currentUser = null;
+                authBtn.textContent = "Login with Google to Track Time";
+                statsCard.style.display = "none";
+                userDisplay.textContent = "";
+            }
+        });
 
-    function toggleSettings() {
-        const panel = document.getElementById('settings-panel');
-        panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
-    }
+        async function loadUserStats() {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await getDoc(userRef);
+            if (userSnap.exists()) {
+                totalMinEl.textContent = userSnap.data().totalMinutes || 0;
+            } else {
+                await setDoc(userRef, { totalMinutes: 0 });
+            }
+        }
 
-    function saveSettings() {
-        const w = document.getElementById('work-input').value;
-        const s = document.getElementById('short-input').value;
-        const l = document.getElementById('long-input').value;
+        // Timer Logic
+        startBtn.onclick = () => {
+            if (isRunning) {
+                clearInterval(timerId);
+                isRunning = false;
+                startBtn.textContent = "START";
+            } else {
+                isRunning = true;
+                startBtn.textContent = "PAUSE";
+                timerId = setInterval(async () => {
+                    timeLeft--;
+                    updateDisplay();
+                    
+                    if (timeLeft <= 0) {
+                        clearInterval(timerId);
+                        isRunning = false;
+                        startBtn.textContent = "START";
+                        timeLeft = 25 * 60; 
+                        updateDisplay();
+                        
+                        if (currentUser) {
+                            const userRef = doc(db, "users", currentUser.uid);
+                            await updateDoc(userRef, { totalMinutes: increment(25) });
+                            loadUserStats();
+                        }
+                        alert("Session complete! Great job.");
+                    }
+                }, 1000);
+            }
+        };
 
-        themes.work.time = w * 60;
-        themes.short.time = s * 60;
-        themes.long.time = l * 60;
-
-        // Save to LocalStorage
-        localStorage.setItem('pomoSettings', JSON.stringify({work: w, short: s, long: l}));
-
-        setMode(currentMode);
-        toggleSettings();
-    }
-
-    // Initialize
-    updateDisplay();
+        function updateDisplay() {
+            const m = Math.floor(timeLeft / 60);
+            const s = timeLeft % 60;
+            timerEl.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+    </script>
+</body>
+</html>
     startBtn.style.color = themes.work.color;
 </script>
 
