@@ -3,79 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>ZenStudy Pomodoro</title>
+    <title>ZenStudy</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="ZenStudy">
 
     <style>
-        :root { --bg-color: #ba4949; --btn-bg: rgba(255, 255, 255, 0.2); }
-        body {
-            background-color: var(--bg-color);
-            transition: background-color 0.5s ease;
-            font-family: -apple-system, system-ui, sans-serif;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; margin: 0; color: white; overflow: hidden;
+        :root {
+            --bg: #ffffff;
+            --text: #000000;
+            --accent: #000000;
+            --secondary: #f0f0f0;
         }
-        .container { text-align: center; width: 90%; max-width: 400px; }
-        .timer-display { font-size: 100px; font-weight: bold; margin: 10px 0; font-variant-numeric: tabular-nums; }
-        
-        .main-btn {
-            background: white; color: var(--bg-color); border: none;
-            padding: 18px 60px; font-size: 22px; font-weight: bold;
-            border-radius: 12px; cursor: pointer; box-shadow: 0px 6px #ddd;
-        }
-        .main-btn:active { transform: translateY(4px); box-shadow: none; }
 
-        .stats-card {
-            margin-top: 30px; background: rgba(0,0,0,0.2);
-            padding: 15px; border-radius: 15px; backdrop-filter: blur(5px);
-            display: none; /* Hidden until login */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #000000;
+                --text: #ffffff;
+                --accent: #ffffff;
+                --secondary: #1a1a1a;
+            }
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; transition: background 0.4s ease;
+            overflow: hidden;
+        }
+
+        .timer-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* SVG Progress Ring */
+        svg {
+            position: absolute;
+            transform: rotate(-90deg);
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 4;
+            stroke-linecap: round;
+        }
+
+        .bg-circle { stroke: var(--secondary); }
+        .progress-circle {
+            stroke: var(--accent);
+            stroke-dasharray: 754; /* 2 * PI * r */
+            stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear;
+        }
+
+        .timer-display {
+            font-size: 64px;
+            font-weight: 300;
+            letter-spacing: -2px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .controls { margin-top: 40px; text-align: center; }
+
+        .main-btn {
+            background: var(--text);
+            color: var(--bg);
+            border: none;
+            padding: 12px 48px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .main-btn:active { opacity: 0.7; }
+
+        .stats-box {
+            position: absolute;
+            bottom: 60px;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.5;
+            display: none;
         }
 
         #auth-btn {
-            margin-top: 20px; background: none; border: 1px solid white;
-            color: white; padding: 8px 20px; border-radius: 20px; cursor: pointer;
+            position: absolute;
+            bottom: 30px;
+            background: none;
+            border: none;
+            color: var(--text);
+            font-size: 11px;
+            text-decoration: underline;
+            opacity: 0.4;
+            cursor: pointer;
         }
 
-        .settings-btn { position: absolute; top: 50px; right: 20px; font-size: 24px; cursor: pointer; opacity: 0.8; }
+        #user-greet {
+            position: absolute;
+            top: 60px;
+            font-size: 14px;
+            font-weight: 500;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body>
 
-    <div class="settings-btn" onclick="alert('Settings feature coming soon!')">⚙️</div>
+    <div id="user-greet"></div>
 
-    <div class="container">
-        <div id="user-info" style="margin-bottom: 10px; font-weight: 500;"></div>
-        
+    <div class="timer-container">
+        <svg width="260" height="260">
+            <circle class="bg-circle" cx="130" cy="130" r="120"></circle>
+            <circle id="progress" class="progress-circle" cx="130" cy="130" r="120"></circle>
+        </svg>
         <div class="timer-display" id="timer">25:00</div>
-        
-        <button class="main-btn" id="start-btn">START</button>
-
-        <div class="stats-card" id="stats-card">
-            <div style="font-size: 12px; opacity: 0.8;">TOTAL FOCUS TIME</div>
-            <div style="font-size: 24px; font-weight: bold;"><span id="total-minutes">0</span> MINS</div>
-        </div>
-
-        <button id="auth-btn">Login with Google to Track Time</button>
     </div>
+
+    <div class="controls">
+        <button class="main-btn" id="start-btn">START</button>
+    </div>
+
+    <div class="stats-box" id="stats-box">
+        Total: <span id="total-min">0</span> mins
+    </div>
+
+    <button id="auth-btn">Sign in with Google</button>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Your Config
         const firebaseConfig = {
             apiKey: "AIzaSyBAuig-hearPfpRAYrLS21jVRszxhzI9V4",
             authDomain: "zenstudy-2fe64.firebaseapp.com",
-            databaseURL: "https://zenstudy-2fe64-default-rtdb.firebaseio.com",
             projectId: "zenstudy-2fe64",
             storageBucket: "zenstudy-2fe64.firebasestorage.app",
             messagingSenderId: "650684766921",
-            appId: "1:650684766921:web:b445a2ddedce7bdcdfcb18",
-            measurementId: "G-KG91HQGMM8"
+            appId: "1:650684766921:web:b445a2ddedce7bdcdfcb18"
         };
 
         const app = initializeApp(firebaseConfig);
@@ -83,95 +160,84 @@
         const db = getFirestore(app);
         const provider = new GoogleAuthProvider();
 
-        // App State
-        let timeLeft = 25 * 60;
+        let WORK_TIME = 25 * 60;
+        let timeLeft = WORK_TIME;
         let timerId = null;
         let isRunning = false;
         let currentUser = null;
 
-        // UI Elements
-        const timerEl = document.getElementById('timer');
-        const startBtn = document.getElementById('start-btn');
-        const authBtn = document.getElementById('auth-btn');
-        const statsCard = document.getElementById('stats-card');
-        const totalMinEl = document.getElementById('total-minutes');
-        const userDisplay = document.getElementById('user-info');
+        const circle = document.getElementById('progress');
+        const radius = circle.r.baseVal.value;
+        const circumference = 2 * Math.PI * radius;
 
-        // Handle Auth
-        authBtn.onclick = () => {
-            if (!currentUser) {
-                signInWithPopup(auth, provider);
-            } else {
-                signOut(auth);
-            }
+        // Auth Logic
+        document.getElementById('auth-btn').onclick = () => {
+            !currentUser ? signInWithPopup(auth, provider) : signOut(auth);
         };
 
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                authBtn.textContent = "Logout";
-                statsCard.style.display = "block";
-                userDisplay.textContent = `Hello, ${user.displayName.split(' ')[0]}!`;
-                loadUserStats();
+                document.getElementById('auth-btn').textContent = "Sign Out";
+                document.getElementById('stats-box').style.display = "block";
+                document.getElementById('user-greet').textContent = user.displayName.toUpperCase();
+                loadStats();
             } else {
                 currentUser = null;
-                authBtn.textContent = "Login with Google to Track Time";
-                statsCard.style.display = "none";
-                userDisplay.textContent = "";
+                document.getElementById('auth-btn').textContent = "Sign in with Google";
+                document.getElementById('stats-box').style.display = "none";
+                document.getElementById('user-greet').textContent = "ZENSTUDY";
             }
         });
 
-        async function loadUserStats() {
-            const userRef = doc(db, "users", currentUser.uid);
-            const userSnap = await getDoc(userRef);
-            if (userSnap.exists()) {
-                totalMinEl.textContent = userSnap.data().totalMinutes || 0;
-            } else {
-                await setDoc(userRef, { totalMinutes: 0 });
-            }
+        async function loadStats() {
+            const snap = await getDoc(doc(db, "users", currentUser.uid));
+            if (snap.exists()) document.getElementById('total-min').textContent = snap.data().totalMinutes || 0;
         }
 
         // Timer Logic
-        startBtn.onclick = () => {
+        document.getElementById('start-btn').onclick = () => {
             if (isRunning) {
                 clearInterval(timerId);
                 isRunning = false;
-                startBtn.textContent = "START";
+                document.getElementById('start-btn').textContent = "START";
             } else {
                 isRunning = true;
-                startBtn.textContent = "PAUSE";
+                document.getElementById('start-btn').textContent = "PAUSE";
                 timerId = setInterval(async () => {
                     timeLeft--;
-                    updateDisplay();
-                    
+                    updateUI();
                     if (timeLeft <= 0) {
                         clearInterval(timerId);
-                        isRunning = false;
-                        startBtn.textContent = "START";
-                        timeLeft = 25 * 60; 
-                        updateDisplay();
-                        
                         if (currentUser) {
-                            const userRef = doc(db, "users", currentUser.uid);
-                            await updateDoc(userRef, { totalMinutes: increment(25) });
-                            loadUserStats();
+                            await updateDoc(doc(db, "users", currentUser.uid), { totalMinutes: increment(25) });
+                            loadStats();
                         }
-                        alert("Session complete! Great job.");
+                        alert("Focus complete.");
+                        resetTimer();
                     }
                 }, 1000);
             }
         };
 
-        function updateDisplay() {
+        function updateUI() {
             const m = Math.floor(timeLeft / 60);
             const s = timeLeft % 60;
-            timerEl.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+            document.getElementById('timer').textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+            
+            // Circular Animation
+            const offset = circumference - (timeLeft / WORK_TIME) * circumference;
+            circle.style.strokeDashoffset = offset;
         }
-    </script>
-</body>
-</html>
-    startBtn.style.color = themes.work.color;
-</script>
 
+        function resetTimer() {
+            timeLeft = WORK_TIME;
+            isRunning = false;
+            document.getElementById('start-btn').textContent = "START";
+            updateUI();
+        }
+
+        updateUI();
+    </script>
 </body>
 </html>
